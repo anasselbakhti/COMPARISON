@@ -11,35 +11,52 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
 from pathlib import Path
+from datetime import timedelta
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
+# JWT Settings
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
+}
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-466jj#dcd9^u!m94(%thyf^)47p73ro(=k=a^h&lf94!!vuy_p'
+SECRET_KEY = 'django-insecure-change-this-in-production'
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
 
 # Application definition
 
 INSTALLED_APPS = [
+    # Apps Django de base
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+
+    # Packages tiers
+    'rest_framework',           # Django REST Framework
+    'rest_framework_simplejwt', # Authentification JWT
+    'corsheaders',              # Autorise le frontend à appeler l'API
+    'django_filters',           # Filtres avancés (brand, prix, RAM)
+
+    # Ton application
+    'products',
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',  # DOIT être en premier
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -48,6 +65,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+
 
 ROOT_URLCONF = 'techcompare.urls'
 
@@ -102,16 +120,53 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/6.0/topics/i18n/
 
-LANGUAGE_CODE = 'en-us'
-
-TIME_ZONE = 'UTC'
-
-USE_I18N = True
-
-USE_TZ = True
+LANGUAGE_CODE = 'fr-fr'
+TIME_ZONE     = 'Africa/Casablanca'
+USE_I18N      = True
+USE_TZ        = True
 
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
-STATIC_URL = 'static/'
+STATIC_URL  = '/static/'
+MEDIA_URL   = '/media/'
+MEDIA_ROOT  = BASE_DIR / 'media'
+
+REST_FRAMEWORK = {
+    # JWT comme méthode d'authentification par défaut
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ),
+    # Les endpoints publics sont accessibles sans token
+    'DEFAULT_PERMISSION_CLASSES': (
+        'rest_framework.permissions.IsAuthenticatedOrReadOnly',
+    ),
+    # Pagination activée globalement
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 20,
+    # Filtres activés globalement
+    'DEFAULT_FILTER_BACKENDS': [
+        'django_filters.rest_framework.DjangoFilterBackend',
+        'rest_framework.filters.SearchFilter',
+        'rest_framework.filters.OrderingFilter',
+    ],
+}
+
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME':  timedelta(hours=1),   # token expire après 1h
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),     # refresh valable 7 jours
+    'ROTATE_REFRESH_TOKENS':  True,                  # nouveau refresh à chaque usage
+    'AUTH_HEADER_TYPES':      ('Bearer',),            # format: Authorization: Bearer <token>
+}
+
+# En développement : autoriser toutes les origines
+CORS_ALLOW_ALL_ORIGINS = True
+
+# En production, remplacer par :
+# CORS_ALLOWED_ORIGINS = [
+#     'http://localhost:3000',   # frontend React local
+#     'https://techcompare.ma', # ton domaine en prod
+# ]
+
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'

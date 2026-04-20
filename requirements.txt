@@ -23,6 +23,10 @@ cwcwidth==0.1.9
 decorator==5.2.1
 distlib==0.4.0
 Django==6.0.2
+django-cors-headers==4.9.0
+django-filter==25.2
+djangorestframework==3.17.1
+djangorestframework_simplejwt==5.5.1
 docopt==0.6.2
 docutils==0.20.1
 Eel==0.16.0
@@ -63,6 +67,7 @@ pygame==2.5.2
 pygme==0.3.0
 pyinstaller==6.4.0
 pyinstaller-hooks-contrib==2024.1
+PyJWT==2.12.1
 PyMySQL==1.1.1
 pyOpenSSL==24.1.0
 pyparsing==3.1.1
