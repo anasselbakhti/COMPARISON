@@ -15,7 +15,10 @@ from datetime import timedelta
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
-
+SECRET_KEY = 'django-insecure-change-this-in-production'
+DEBUG = True
+ALLOWED_HOSTS = ['*']
+ 
 
 # JWT Settings
 SIMPLE_JWT = {
@@ -37,26 +40,24 @@ ALLOWED_HOSTS = ['*']
 # Application definition
 
 INSTALLED_APPS = [
-    # Apps Django de base
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-
-    # Packages tiers
-    'rest_framework',           # Django REST Framework
-    'rest_framework_simplejwt', # Authentification JWT
-    'corsheaders',              # Autorise le frontend à appeler l'API
-    'django_filters',           # Filtres avancés (brand, prix, RAM)
-
-    # Ton application
+    # Packages
+    'rest_framework',
+    'rest_framework_simplejwt',
+    'rest_framework_simplejwt.token_blacklist',  # pour logout
+    'corsheaders',
+    'django_filters',
+    # App
     'products',
 ]
 
 MIDDLEWARE = [
-    'corsheaders.middleware.CorsMiddleware',  # DOIT être en premier
+    'corsheaders.middleware.CorsMiddleware',   # en premier
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -133,40 +134,42 @@ STATIC_URL  = '/static/'
 MEDIA_URL   = '/media/'
 MEDIA_ROOT  = BASE_DIR / 'media'
 
+# --- Django REST Framework ---
 REST_FRAMEWORK = {
-    # JWT comme méthode d'authentification par défaut
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),
-    # Les endpoints publics sont accessibles sans token
     'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.IsAuthenticatedOrReadOnly',
     ),
-    # Pagination activée globalement
-    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
-    'PAGE_SIZE': 20,
-    # Filtres activés globalement
-    'DEFAULT_FILTER_BACKENDS': [
+    'DEFAULT_PAGINATION_CLASS' : 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE'                : 20,
+    'DEFAULT_FILTER_BACKENDS'  : [
         'django_filters.rest_framework.DjangoFilterBackend',
         'rest_framework.filters.SearchFilter',
         'rest_framework.filters.OrderingFilter',
     ],
 }
+ 
 
+# --- JWT ---
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME':  timedelta(hours=1),   # token expire après 1h
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),     # refresh valable 7 jours
-    'ROTATE_REFRESH_TOKENS':  True,                  # nouveau refresh à chaque usage
-    'AUTH_HEADER_TYPES':      ('Bearer',),            # format: Authorization: Bearer <token>
+    'ACCESS_TOKEN_LIFETIME' : timedelta(hours=1),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
+    'ROTATE_REFRESH_TOKENS' : True,
+    'BLACKLIST_AFTER_ROTATION': True,   # active le blacklist pour logout
+    'AUTH_HEADER_TYPES'     : ('Bearer',),
 }
 
-# En développement : autoriser toutes les origines
+# --- CORS ---
 CORS_ALLOW_ALL_ORIGINS = True
-
-# En production, remplacer par :
-# CORS_ALLOWED_ORIGINS = [
-#     'http://localhost:3000',   # frontend React local
-#     'https://techcompare.ma', # ton domaine en prod
-# ]
-
+ 
+LANGUAGE_CODE = 'fr-fr'
+TIME_ZONE     = 'Africa/Casablanca'
+USE_I18N      = True
+USE_TZ        = True
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+ 
+MEDIA_URL  = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
+
