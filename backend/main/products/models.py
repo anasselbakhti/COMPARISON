@@ -60,6 +60,7 @@ class Product(models.Model):
                     'battery_mah': s.battery_mah,
                     'screen_in': float(s.screen_in or 0),
                     'network': s.network,
+                    'year_release': s.year_release,
                 }
             except Smartphone.DoesNotExist:
                 return {}
@@ -75,6 +76,7 @@ class Product(models.Model):
                     'battery_wh': l.battery_wh,
                     'weight_kg': float(l.weight_kg or 0),
                     'os': l.os,
+                    'year_release': l.year_release,
                 }
             except Laptop.DoesNotExist:
                 return {}
@@ -94,6 +96,7 @@ class Smartphone(Product):
     battery_mah = models.IntegerField(default=0)
     screen_in   = models.DecimalField(max_digits=4, decimal_places=1, null=True, blank=True)
     network     = models.CharField(max_length=10, choices=NETWORK_CHOICES, default='4G')
+    year_release = models.IntegerField(null=True, blank=True, verbose_name="Année de sortie")
 
     class Meta:
         db_table            = 'tc_smartphone'
@@ -116,6 +119,7 @@ class Laptop(Product):
     battery_wh = models.SmallIntegerField(default=0)
     weight_kg  = models.DecimalField(max_digits=4, decimal_places=2, default=0.00)
     os         = models.CharField(max_length=50, default='')
+    year_release = models.IntegerField(null=True, blank=True, verbose_name="Année de sortie")
 
     class Meta:
         db_table            = 'tc_laptop'
@@ -183,7 +187,8 @@ class Favorite(models.Model):
         verbose_name_plural = "Favoris"
 
     def __str__(self):
-        return f"{self.user.username} → {self.product.name}"
+        return f"{self.user.username} -> {self.product.name}"
+
 
 
 # ============================================================
@@ -267,3 +272,4 @@ class Notification(models.Model):
 
     def __str__(self):
         return f"Notif {self.user.username} : {self.message[:30]}..."
+    

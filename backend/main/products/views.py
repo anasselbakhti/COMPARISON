@@ -11,11 +11,10 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import authenticate
 from django_filters.rest_framework import DjangoFilterBackend
 
-from .models import Product, Smartphone, Laptop, UserProfile, Favorite, Review, SavedComparison, PriceAlert, Notification
+from .models import Product, Smartphone, Laptop, UserProfile, Favorite
 from .serializers import (
     RegisterSerializer, UserSerializer, UserProfileSerializer,
-    FavoriteSerializer, ProductSerializer, SmartphoneSerializer, LaptopSerializer,
-    ReviewSerializer, SavedComparisonSerializer, PriceAlertSerializer, NotificationSerializer
+    FavoriteSerializer, ProductSerializer, SmartphoneSerializer, LaptopSerializer
 )
 from .filters import ProductFilter, SmartphoneFilter, LaptopFilter
 
@@ -192,78 +191,3 @@ class LaptopViewSet(viewsets.ModelViewSet):
     search_fields      = ['name', 'brand', 'cpu']
     ordering_fields    = ['price', 'ram_gb', 'weight_kg']
     ordering           = ['-updated_at']
-
-
-# ============================================================
-# REVIEW VIEWSET
-# ============================================================
-class ReviewViewSet(viewsets.ModelViewSet):
-    queryset           = Review.objects.all()
-    serializer_class   = ReviewSerializer
-    permission_classes = [IsAuthenticatedOrReadOnly]
-    filter_backends    = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    filterset_fields   = ['rating', 'product']
-    search_fields      = ['comment']
-    ordering_fields    = ['created_at', 'rating']
-    ordering           = ['-created_at']
-
-    def get_queryset(self):
-        queryset = Review.objects.all()
-        product_id = self.request.query_params.get('product_id', None)
-        if product_id:
-            queryset = queryset.filter(product_id=product_id)
-        return queryset
-
-    def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
-
-
-# ============================================================
-# SAVED COMPARISON VIEWSET
-# ============================================================
-class SavedComparisonViewSet(viewsets.ModelViewSet):
-    serializer_class   = SavedComparisonSerializer
-    permission_classes = [IsAuthenticated]
-    filter_backends    = [filters.SearchFilter, filters.OrderingFilter]
-    search_fields      = ['name']
-    ordering_fields    = ['created_at']
-    ordering           = ['-created_at']
-
-    def get_queryset(self):
-        return SavedComparison.objects.filter(user=self.request.user)
-
-    def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
-
-
-# ============================================================
-# PRICE ALERT VIEWSET
-# ============================================================
-class PriceAlertViewSet(viewsets.ModelViewSet):
-    serializer_class   = PriceAlertSerializer
-    permission_classes = [IsAuthenticated]
-    filter_backends    = [DjangoFilterBackend, filters.OrderingFilter]
-    filterset_fields   = ['is_active']
-    ordering_fields    = ['created_at', 'target_price']
-    ordering           = ['-created_at']
-
-    def get_queryset(self):
-        return PriceAlert.objects.filter(user=self.request.user)
-
-    def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
-
-
-# ============================================================
-# NOTIFICATION VIEWSET
-# ============================================================
-class NotificationViewSet(viewsets.ModelViewSet):
-    serializer_class   = NotificationSerializer
-    permission_classes = [IsAuthenticated]
-    filter_backends    = [DjangoFilterBackend, filters.OrderingFilter]
-    filterset_fields   = ['is_read']
-    ordering_fields    = ['created_at']
-    ordering           = ['-created_at']
-
-    def get_queryset(self):
-        return Notification.objects.filter(user=self.request.user)

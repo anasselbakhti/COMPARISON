@@ -7,8 +7,7 @@ from rest_framework_simplejwt.views import TokenRefreshView
 
 from .views import (
     RegisterView, LoginView, LogoutView, ProfileView,
-    FavoriteViewSet, ProductViewSet, SmartphoneViewSet, LaptopViewSet,
-    ReviewViewSet, SavedComparisonViewSet, PriceAlertViewSet, NotificationViewSet
+    FavoriteViewSet, ProductViewSet, SmartphoneViewSet, LaptopViewSet
 )
 
 router = DefaultRouter()
@@ -16,10 +15,6 @@ router.register(r'products',    ProductViewSet,    basename='product')
 router.register(r'smartphones', SmartphoneViewSet, basename='smartphone')
 router.register(r'laptops',     LaptopViewSet,     basename='laptop')
 router.register(r'favorites',   FavoriteViewSet,   basename='favorite')
-router.register(r'reviews',     ReviewViewSet,     basename='review')
-router.register(r'saved-comparisons', SavedComparisonViewSet, basename='saved-comparison')
-router.register(r'price-alerts', PriceAlertViewSet, basename='price-alert')
-router.register(r'notifications', NotificationViewSet, basename='notification')
 
 urlpatterns = [
     # Auth
