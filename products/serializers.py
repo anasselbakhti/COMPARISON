@@ -4,7 +4,8 @@
 # ============================================================
 from django.contrib.auth.models import User
 from rest_framework import serializers
-from .models import Product, Smartphone, Laptop, UserProfile, Favorite
+from .models import Product, Smartphone, Laptop, UserProfile, Favorite, Review, SavedComparison, PriceAlert
+from .notifications import NotificationModel
 
 
 # ============================================================
@@ -144,3 +145,91 @@ class ProductSerializer(serializers.ModelSerializer):
 
     def get_avg_rating(self, obj):
         return obj.get_avg_rating()
+
+
+# ============================================================
+# AVIS (Review)
+# ============================================================
+class ReviewSerializer(serializers.ModelSerializer):
+    username = serializers.CharField(source='user.username', read_only=True)
+
+    class Meta:
+        model  = Review
+        fields = ['id', 'username', 'product', 'rating', 'comment', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'username', 'created_at', 'updated_at']
+
+    def validate_rating(self, value):
+        if not 1 <= value <= 5:
+            raise serializers.ValidationError("La note doit être entre 1 et 5.")
+        return value
+
+    def create(self, validated_data):
+        user = self.context['request'].user
+        product = validated_data['product']
+        if Review.objects.filter(user=user, product=product).exists():
+            raise serializers.ValidationError("Vous avez déjà soumis un avis pour ce produit.")
+        return Review.objects.create(user=user, **validated_data)
+
+
+# ============================================================
+# COMPARAISONS SAUVEGARDÉES
+# ============================================================
+class SavedComparisonSerializer(serializers.ModelSerializer):
+    products = ProductMiniSerializer(many=True, read_only=True)
+    product_ids = serializers.PrimaryKeyRelatedField(
+        queryset=Product.objects.all(),
+        source='products',
+        many=True,
+        write_only=True
+    )
+
+    class Meta:
+        model  = SavedComparison
+        fields = ['id', 'title', 'products', 'product_ids', 'created_at']
+        read_only_fields = ['id', 'created_at']
+
+    def validate_product_ids(self, value):
+        if not (2 <= len(value) <= 4):
+            raise serializers.ValidationError("Vous devez sélectionner entre 2 et 4 produits.")
+        return value
+
+    def create(self, validated_data):
+        products = validated_data.pop('products')
+        user = self.context['request'].user
+        comparison = SavedComparison.objects.create(user=user, **validated_data)
+        comparison.products.set(products)
+        return comparison
+
+
+# ============================================================
+# ALERTES PRIX
+# ============================================================
+class PriceAlertSerializer(serializers.ModelSerializer):
+    product_name = serializers.CharField(source='product.name', read_only=True)
+
+    class Meta:
+        model  = PriceAlert
+        fields = ['id', 'product', 'product_name', 'target_price', 'is_active', 'triggered_at', 'created_at']
+        read_only_fields = ['id', 'triggered_at', 'created_at']
+
+    def create(self, validated_data):
+        user = self.context['request'].user
+        product = validated_data['product']
+        alert, created = PriceAlert.objects.update_or_create(
+            user=user, product=product,
+            defaults={
+                'target_price': validated_data['target_price'],
+                'is_active': True,
+            }
+        )
+        return alert
+
+
+# ============================================================
+# NOTIFICATIONS
+# ============================================================
+class NotificationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model  = NotificationModel
+        fields = ['id', 'notification_type', 'title', 'message', 'is_read', 'created_at', 'read_at']
+        read_only_fields = ['id', 'created_at', 'read_at']

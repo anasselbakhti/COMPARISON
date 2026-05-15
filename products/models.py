@@ -43,9 +43,12 @@ class Product(models.Model):
 
     def get_avg_rating(self):
         """Note moyenne — utilisée par Personne 2."""
-        from django.db.models import Avg
-        result = self.reviews.aggregate(avg=Avg('rating'))
-        return round(result['avg'] or 0, 1)
+        try:
+            from django.db.models import Avg
+            result = self.reviews.aggregate(avg=Avg('rating'))
+            return round(result['avg'] or 0, 1)
+        except Exception:
+            return 0.0
 
     def get_specs(self):
         """Retourne les specs selon la catégorie."""
@@ -87,13 +90,14 @@ class Product(models.Model):
 class Smartphone(Product):
     NETWORK_CHOICES = [('3G', '3G'), ('4G', '4G'), ('5G', '5G')]
 
-    os          = models.CharField(max_length=50,  default='')
-    ram_gb      = models.SmallIntegerField(default=0)
-    storage_gb  = models.SmallIntegerField(default=0)
-    camera_mp   = models.SmallIntegerField(default=0)
-    battery_mah = models.IntegerField(default=0)
-    screen_in   = models.DecimalField(max_digits=4, decimal_places=1, null=True, blank=True)
-    network     = models.CharField(max_length=10, choices=NETWORK_CHOICES, default='4G')
+    os           = models.CharField(max_length=50,  default='')
+    ram_gb       = models.SmallIntegerField(default=0)
+    storage_gb   = models.SmallIntegerField(default=0)
+    camera_mp    = models.SmallIntegerField(default=0)
+    battery_mah  = models.IntegerField(default=0)
+    screen_in    = models.DecimalField(max_digits=4, decimal_places=1, null=True, blank=True)
+    network      = models.CharField(max_length=10, choices=NETWORK_CHOICES, default='4G')
+    release_year = models.SmallIntegerField(null=True, blank=True, verbose_name="Année de sortie")
 
     class Meta:
         db_table            = 'tc_smartphone'
@@ -108,14 +112,15 @@ class Smartphone(Product):
 # 3. LAPTOP (hérite de Product — MTI)
 # ============================================================
 class Laptop(Product):
-    cpu        = models.CharField(max_length=100, default='')
-    ram_gb     = models.SmallIntegerField(default=0)
-    storage_gb = models.SmallIntegerField(default=0)
-    screen_in  = models.DecimalField(max_digits=4, decimal_places=1, null=True, blank=True)
-    gpu        = models.CharField(max_length=100, default='')
-    battery_wh = models.SmallIntegerField(default=0)
-    weight_kg  = models.DecimalField(max_digits=4, decimal_places=2, default=0.00)
-    os         = models.CharField(max_length=50, default='')
+    cpu          = models.CharField(max_length=100, default='')
+    ram_gb       = models.SmallIntegerField(default=0)
+    storage_gb   = models.SmallIntegerField(default=0)
+    screen_in    = models.DecimalField(max_digits=4, decimal_places=1, null=True, blank=True)
+    gpu          = models.CharField(max_length=100, default='')
+    battery_wh   = models.SmallIntegerField(default=0)
+    weight_kg    = models.DecimalField(max_digits=4, decimal_places=2, default=0.00)
+    os           = models.CharField(max_length=50, default='')
+    release_year = models.SmallIntegerField(null=True, blank=True, verbose_name="Année de sortie")
 
     class Meta:
         db_table            = 'tc_laptop'
@@ -184,3 +189,106 @@ class Favorite(models.Model):
 
     def __str__(self):
         return f"{self.user.username} → {self.product.name}"
+
+
+# ============================================================
+# 6. AVIS ET NOTATION (Review)
+#    Un utilisateur peut laisser 1 avis par produit
+# ============================================================
+class Review(models.Model):
+    RATING_CHOICES = [(i, str(i)) for i in range(1, 6)]  # 1 à 5 étoiles
+
+    user       = models.ForeignKey(
+                     User,
+                     on_delete=models.CASCADE,
+                     related_name='reviews',
+                     verbose_name="Utilisateur"
+                 )
+    product    = models.ForeignKey(
+                     Product,
+                     on_delete=models.CASCADE,
+                     related_name='reviews',
+                     verbose_name="Produit"
+                 )
+    rating     = models.SmallIntegerField(
+                     choices=RATING_CHOICES,
+                     verbose_name="Note (1-5)"
+                 )
+    comment    = models.TextField(blank=True, default='', verbose_name="Commentaire")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table        = 'tc_review'
+        unique_together = ('user', 'product')  # 1 avis par user par produit
+        ordering        = ['-created_at']
+        verbose_name        = "Avis"
+        verbose_name_plural = "Avis"
+
+    def __str__(self):
+        return f"{self.user.username} → {self.product.name} ({self.rating}★)"
+
+
+# ============================================================
+# 7. COMPARAISONS SAUVEGARDÉES
+#    Un utilisateur peut sauvegarder une comparaison de 2 à 4 produits
+# ============================================================
+class SavedComparison(models.Model):
+    user       = models.ForeignKey(
+                     User,
+                     on_delete=models.CASCADE,
+                     related_name='saved_comparisons',
+                     verbose_name="Utilisateur"
+                 )
+    title      = models.CharField(max_length=200, blank=True, default='', verbose_name="Titre")
+    products   = models.ManyToManyField(
+                     Product,
+                     related_name='saved_in_comparisons',
+                     verbose_name="Produits comparés"
+                 )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table            = 'tc_saved_comparison'
+        ordering            = ['-created_at']
+        verbose_name        = "Comparaison sauvegardée"
+        verbose_name_plural = "Comparaisons sauvegardées"
+
+    def __str__(self):
+        return f"{self.user.username} — {self.title or 'Comparaison sans titre'}"
+
+
+# ============================================================
+# 8. ALERTE PRIX
+#    Un utilisateur peut activer une alerte si le prix d'un produit baisse
+# ============================================================
+class PriceAlert(models.Model):
+    user           = models.ForeignKey(
+                         User,
+                         on_delete=models.CASCADE,
+                         related_name='price_alerts',
+                         verbose_name="Utilisateur"
+                     )
+    product        = models.ForeignKey(
+                         Product,
+                         on_delete=models.CASCADE,
+                         related_name='price_alerts',
+                         verbose_name="Produit"
+                     )
+    target_price   = models.DecimalField(
+                         max_digits=10, decimal_places=2,
+                         verbose_name="Prix cible (MAD)"
+                     )
+    is_active      = models.BooleanField(default=True, verbose_name="Active")
+    triggered_at   = models.DateTimeField(null=True, blank=True)
+    created_at     = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table        = 'tc_price_alert'
+        unique_together = ('user', 'product')
+        ordering        = ['-created_at']
+        verbose_name        = "Alerte prix"
+        verbose_name_plural = "Alertes prix"
+
+    def __str__(self):
+        return f"{self.user.username} → {self.product.name} @ {self.target_price} MAD"
