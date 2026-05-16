@@ -1,3 +1,6 @@
+from dotenv import load_dotenv
+load_dotenv()
+
 import os
 from typing import List, Dict
 
@@ -6,30 +9,26 @@ try:
 except Exception:
     genai = None
 
-# Lecture de la clé depuis la variable d'environnement pour éviter d'écrire la clé en dur
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY", "")
 
 def _make_client():
     if genai is None:
+        print("❌ google-genai non installé")
         return None
     if not GOOGLE_API_KEY:
+        print("❌ Clé API vide")
         return None
     try:
         return genai.Client(api_key=GOOGLE_API_KEY)
-    except Exception:
+    except Exception as e:
+        print("❌ Erreur client:", e)
         return None
 
 
 def conseiller_ia_best(products: List[Dict]) -> str:
-    """
-    Appelle l'API IA pour générer un court commentaire indiquant quel produit
-    parmi la liste est le meilleur rapport qualité/prix. Si l'API n'est pas
-    disponible, retourne un avis simple basé sur heuristique locale.
-    """
-    # Construire un prompt lisible pour l'IA
     lines = [
         "Tu es un expert en technologie pour un site e-commerce marocain.",
-        "Compare ces produits et indique en une phrase lequel offre le meilleur rapport qualité/prix",
+        "Compare ces produits et indique en une phrase lequel offre le meilleur rapport qualité/prix.",
         "Fais une réponse concise et neutre.",
         "Produits :",
     ]
@@ -49,22 +48,19 @@ def conseiller_ia_best(products: List[Dict]) -> str:
                 model='gemini-2.5-flash',
                 contents=prompt
             )
-            # certains SDK renvoient .text ou .content
+            print("✅ Réponse Gemini reçue")
             return getattr(response, 'text', None) or getattr(response, 'content', None) or str(response)
-        except Exception:
-            # fallback to heuristic below
-            pass
+        except Exception as e:
+            print("❌ Erreur Gemini:", e)
 
-    # Heuristique simple : meilleur rapport RAM/prix, puis stockage/prix
+    # Heuristique locale (fallback)
     best = None
     best_score = float('inf')
     for p in products:
-        price = None
         try:
             price = float(p.get('price') or 0)
         except Exception:
             price = 0.0
-        ram = None
         if isinstance(p.get('specs'), dict):
             ram = p['specs'].get('ram_gb')
             storage = p['specs'].get('storage_gb')
